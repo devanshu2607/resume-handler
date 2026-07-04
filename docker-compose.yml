@@ -7,6 +7,7 @@ services:
       - DB_URL=jdbc:postgresql://ep-noisy-poetry-at87314y.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
       - DB_USERNAME=neondb_owner
       - DB_PASSWORD=npg_M9KxuFgb6JvD
+      - RESEND_API_KEY=${RESEND_API_KEY}
     restart: always
 
   node-gateway:

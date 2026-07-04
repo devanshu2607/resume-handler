@@ -6,6 +6,7 @@ import org.assessment.persistence.User;
 import org.assessment.util.BCryptHasher;
 import com.resend.Resend;
 import com.resend.services.emails.model.SendEmailRequest;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.util.UUID;
@@ -13,8 +14,10 @@ import java.util.UUID;
 @ApplicationScoped
 public class UserService {
 
-    private static final String RESEND_API_KEY = "re_Wdjc2LHw_813smXTcatWwXRXdoNSmcZjP";
     private static final Logger LOG = Logger.getLogger(UserService.class);
+
+    @ConfigProperty(name = "resend.api-key")
+    String resendApiKey;
 
     @Transactional
     public User signup(Long id, String email, String password) {
@@ -43,7 +46,7 @@ public class UserService {
 
     private void sendVerificationEmail(String recipientEmail, String token) {
         try {
-            Resend resend = new Resend(RESEND_API_KEY);
+            Resend resend = new Resend(resendApiKey);
 
             SendEmailRequest sendEmailRequest = SendEmailRequest.builder()
                     .from("onboarding@resend.dev")
