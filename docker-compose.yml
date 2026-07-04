@@ -1,0 +1,23 @@
+services:
+  quarkus-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DB_URL=jdbc:postgresql://ep-noisy-poetry-at87314y.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - DB_USERNAME=neondb_owner
+      - DB_PASSWORD=npg_M9KxuFgb6JvD
+    restart: always
+
+  node-gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - QUARKUS_URL=http://quarkus-backend:8082
+    depends_on:
+      - quarkus-backend
+    restart: always

@@ -1,0 +1,20 @@
+{
+  "name": "portal-gateway",
+  "version": "1.0.0",
+  "description": "Session gateway BFF for user auth and resume dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --runInBand --detectOpenHandles"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  }
+}

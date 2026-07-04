@@ -1,0 +1,47 @@
+# OS Files
+.DS_Store
+Thumbs.db
+*.log
+
+# System / IDE
+.idea/
+*.iml
+.vscode/
+.scannerwork/
+.settings/
+.classpath
+.project
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.lerna/
+.npm/
+
+# Local databases / Private Storage
+resumes.json
+gateway/resumes.json
+
+# Environment variables / Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Java / Maven build output
+target/
+*.jar
+*.war
+*.ear
+*.zip
+dependency-reduced-pom.xml
+
+# React / Frontend build output
+frontend/dist/
+frontend/coverage/
+gateway/coverage/
+backend/target/
