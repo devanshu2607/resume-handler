@@ -131,6 +131,19 @@ npm run test
 
 ---
 
+## 🔍 Code Quality & Static Analysis (SonarQube)
+
+To ensure code maintainability, reliability, and security compliance, static analysis was performed on all three layers using **SonarQube Community**. 
+
+All modules successfully **Passed** the strict SonarQube Quality Gates:
+* **Frontend**: Analysed React/JavaScript and CSS code quality (1.1k LOC).
+* **Portal Gateway (BFF)**: Evaluated Express gateway routing, session controls, and security middlewares (1.4k LOC).
+* **Quarkus Backend**: Validated Java JPA Panache entity mappings, BCrypt password hashing, and SMTP OTP Mailer logic (354 LOC).
+
+![SonarQube Code Quality Report](sonarqube_report.png)
+
+---
+
 ## 🌐 Deployments
 * **Portal Link**: https://resume-handler-roan.vercel.app
 * **AWS API Endpoint**: https://100-27-99-108.sslip.io (Protected with Certbot SSL)
