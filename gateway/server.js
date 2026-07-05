@@ -109,12 +109,15 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.post('/api/logout', auth, (req, res) => {
-    req.session.destroy(err => {
-        if (err) return res.status(500).json({ message: 'Logout failed' });
-        res.clearCookie('connect.sid');
+app.post('/api/logout', (req, res) => {
+    if (req.session) {
+        req.session.destroy(err => {
+            res.clearCookie('connect.sid', { secure: true, sameSite: 'none' });
+            res.json({ success: true });
+        });
+    } else {
         res.json({ success: true });
-    });
+    }
 });
 
 app.get('/api/session', (req, res) => {

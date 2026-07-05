@@ -125,13 +125,14 @@ function App() {
   const handleLogout = async () => {
     try {
       await axios.post('/api/logout');
+    } catch (err) {
+      console.error('Logout failed', err);
+    } finally {
       setUser(null);
       setResume(null);
       setView('login');
       setError('');
       setSuccess('');
-    } catch (err) {
-      console.error('Logout failed', err);
     }
   };
 
