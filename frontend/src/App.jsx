@@ -84,7 +84,8 @@ function App() {
       const res = await axios.post('/api/signup', { email, password });
       setSuccess('Signup successful! Check validation token below.');
       
-      if (res.data.validationToken) {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (res.data.validationToken && isLocalhost) {
         setSimulatedToken(res.data.validationToken);
         setVerifyTokenInput(res.data.validationToken);
       }
@@ -303,7 +304,7 @@ function App() {
               </button>
             </div>
 
-            {simulatedToken && (
+            {simulatedToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
               <div className="simulated-inbox">
                 <h4>📬 Simulated Email Inbox</h4>
                 <p style={{ fontSize: '0.85rem', margin: '0.5rem 0' }}>
@@ -402,7 +403,7 @@ function App() {
                   </button>
                 </form>
 
-                {simulatedToken && (
+                {simulatedToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
                   <div className="simulated-inbox" style={{ maxWidth: '400px', margin: '1.5rem auto 0 auto' }}>
                     <h4>📬 Simulated Validation Token</h4>
                     <p style={{ fontSize: '0.8rem', margin: '0.25rem 0' }}>
