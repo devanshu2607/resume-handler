@@ -37,7 +37,7 @@ public class UserService {
         user.email = email.trim();
         user.passwordHash = BCryptHasher.hash(password);
         user.emailValidated = false;
-        String token = UUID.randomUUID().toString();
+        String token = String.format("%06d", new java.util.Random().nextInt(1000000));
         user.validationToken = token;
         
         user.persist();

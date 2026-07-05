@@ -72,7 +72,10 @@ const verified = (req, res, next) => {
 app.post('/api/signup', async (req, res) => {
     try {
         const response = await axios.post(`${QUARKUS_URL}/users/signup`, req.body);
-        res.status(response.status).json(response.data);
+        const user = { ...response.data };
+        delete user.passwordHash;
+        delete user.validationToken;
+        res.status(response.status).json(user);
     } catch (err) {
         res.status(err.response?.status || 500).json(err.response?.data || { message: 'Signup failed' });
     }
@@ -84,7 +87,10 @@ app.post('/api/verify', async (req, res) => {
         if (req.session?.user) {
             req.session.user.emailValidated = true;
         }
-        res.status(response.status).json(response.data);
+        const data = { ...response.data };
+        delete data.passwordHash;
+        delete data.validationToken;
+        res.status(response.status).json(data);
     } catch (err) {
         res.status(err.response?.status || 500).json(err.response?.data || { message: 'Verification failed' });
     }
@@ -93,8 +99,11 @@ app.post('/api/verify', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const response = await axios.post(`${QUARKUS_URL}/users/login`, req.body);
-        req.session.user = response.data;
-        res.json({ success: true, user: response.data });
+        const user = { ...response.data };
+        delete user.passwordHash;
+        delete user.validationToken;
+        req.session.user = user;
+        res.json({ success: true, user });
     } catch (err) {
         res.status(err.response?.status || 500).json(err.response?.data || { message: 'Login failed' });
     }
@@ -115,78 +124,44 @@ app.get('/api/session', (req, res) => {
     });
 });
 
-app.get('/api/resumes/my', auth, verified, (req, res) => {
-    const userId = req.session.user.id.toString();
-    const db = loadDb();
-    if (!db[userId]) {
-        return res.status(404).json({ message: 'Resume not found' });
+app.get('/api/resumes/my', auth, verified, async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const response = await axios.get(`${QUARKUS_URL}/users/${userId}/resume`);
+        res.json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to fetch resume' });
     }
-    res.json(db[userId]);
 });
 
-app.post('/api/resumes', auth, verified, (req, res) => {
-    const userId = req.session.user.id.toString();
-    const db = loadDb();
-    if (db[userId]) {
-        return res.status(400).json({ message: 'Resume already exists' });
+app.post('/api/resumes', auth, verified, async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const response = await axios.post(`${QUARKUS_URL}/users/${userId}/resume`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to save resume' });
     }
-    
-    const { fullName, title, phone, summary, experience, education, skills } = req.body;
-    if (!fullName) {
-        return res.status(400).json({ message: 'Full name is required' });
-    }
-
-    const resume = {
-        userId: req.session.user.id,
-        fullName,
-        title: title || '',
-        phone: phone || '',
-        summary: summary || '',
-        experience: experience || '',
-        education: education || '',
-        skills: skills || ''
-    };
-    db[userId] = resume;
-    saveDb(db);
-    res.status(201).json(resume);
 });
 
-app.put('/api/resumes/my', auth, verified, (req, res) => {
-    const userId = req.session.user.id.toString();
-    const db = loadDb();
-    if (!db[userId]) {
-        return res.status(404).json({ message: 'Resume not found' });
+app.put('/api/resumes/my', auth, verified, async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const response = await axios.put(`${QUARKUS_URL}/users/${userId}/resume`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to update resume' });
     }
-
-    const { fullName, title, phone, summary, experience, education, skills } = req.body;
-    if (!fullName) {
-        return res.status(400).json({ message: 'Full name is required' });
-    }
-
-    const updated = {
-        ...db[userId],
-        fullName,
-        title: title || '',
-        phone: phone || '',
-        summary: summary || '',
-        experience: experience || '',
-        education: education || '',
-        skills: skills || ''
-    };
-    db[userId] = updated;
-    saveDb(db);
-    res.json(updated);
 });
 
-app.delete('/api/resumes/my', auth, verified, (req, res) => {
-    const userId = req.session.user.id.toString();
-    const db = loadDb();
-    if (!db[userId]) {
-        return res.status(404).json({ message: 'Resume not found' });
+app.delete('/api/resumes/my', auth, verified, async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const response = await axios.delete(`${QUARKUS_URL}/users/${userId}/resume`);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to delete resume' });
     }
-    delete db[userId];
-    saveDb(db);
-    res.json({ success: true, message: 'Deleted successfully' });
 });
 
 if (require.main === module) {

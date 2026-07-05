@@ -80,4 +80,92 @@ public class UserResource {
         }
         return Response.status(404).entity(Map.of(MESSAGE_KEY, "User not found")).build();
     }
+
+    @GET
+    @Path("/{userId}/resume")
+    public Response getResume(@PathParam("userId") Long userId) {
+        org.assessment.persistence.Resume resume = org.assessment.persistence.Resume.findByUserId(userId);
+        if (resume == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of(MESSAGE_KEY, "Resume not found"))
+                    .build();
+        }
+        return Response.ok(resume).build();
+    }
+
+    @POST
+    @Path("/{userId}/resume")
+    @jakarta.transaction.Transactional
+    public Response createResume(@PathParam("userId") Long userId, org.assessment.persistence.Resume incomingResume) {
+        if (incomingResume == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(MESSAGE_KEY, "Invalid resume payload"))
+                    .build();
+        }
+
+        org.assessment.persistence.Resume resume = org.assessment.persistence.Resume.findByUserId(userId);
+        if (resume != null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(MESSAGE_KEY, "Resume already exists"))
+                    .build();
+        }
+
+        resume = new org.assessment.persistence.Resume();
+        resume.userId = userId;
+        resume.fullName = incomingResume.fullName;
+        resume.title = incomingResume.title;
+        resume.phone = incomingResume.phone;
+        resume.summary = incomingResume.summary;
+        resume.experience = incomingResume.experience;
+        resume.education = incomingResume.education;
+        resume.skills = incomingResume.skills;
+
+        resume.persist();
+
+        return Response.status(Response.Status.CREATED).entity(resume).build();
+    }
+
+    @PUT
+    @Path("/{userId}/resume")
+    @jakarta.transaction.Transactional
+    public Response updateResume(@PathParam("userId") Long userId, org.assessment.persistence.Resume incomingResume) {
+        if (incomingResume == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(MESSAGE_KEY, "Invalid resume payload"))
+                    .build();
+        }
+
+        org.assessment.persistence.Resume resume = org.assessment.persistence.Resume.findByUserId(userId);
+        if (resume == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of(MESSAGE_KEY, "Resume not found"))
+                    .build();
+        }
+
+        resume.fullName = incomingResume.fullName;
+        resume.title = incomingResume.title;
+        resume.phone = incomingResume.phone;
+        resume.summary = incomingResume.summary;
+        resume.experience = incomingResume.experience;
+        resume.education = incomingResume.education;
+        resume.skills = incomingResume.skills;
+
+        resume.persist();
+
+        return Response.ok(resume).build();
+    }
+
+    @DELETE
+    @Path("/{userId}/resume")
+    @jakarta.transaction.Transactional
+    public Response deleteResume(@PathParam("userId") Long userId) {
+        org.assessment.persistence.Resume resume = org.assessment.persistence.Resume.findByUserId(userId);
+        if (resume == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of(MESSAGE_KEY, "Resume not found"))
+                    .build();
+        }
+        resume.delete();
+        return Response.ok(Map.of("success", true, MESSAGE_KEY, "Resume deleted")).build();
+    }
 }
