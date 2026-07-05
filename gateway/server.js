@@ -19,12 +19,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Tag all responses to prove BFF architecture is active
+app.use((req, res, next) => {
+    res.setHeader('X-Powered-By-BFF', 'NodeJS-Express-Gateway');
+    next();
+});
+
+app.set('trust proxy', 1); // trust Nginx proxy for secure cookies
+
 app.use(session({
     secret: 'portal-super-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false,
+        secure: true,
+        sameSite: 'none',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000
     }
