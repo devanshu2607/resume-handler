@@ -11,7 +11,10 @@ const QUARKUS_URL = process.env.QUARKUS_URL || 'http://localhost:8082';
 const dbFile = path.join(__dirname, 'resumes.json');
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: function (origin, callback) {
+        // Allow all origins dynamically (localhost, Vercel, etc.)
+        callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
