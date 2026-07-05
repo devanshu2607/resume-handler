@@ -4,9 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.assessment.persistence.User;
 import org.assessment.util.BCryptHasher;
-import com.resend.Resend;
-import com.resend.services.emails.model.SendEmailRequest;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import io.quarkus.mailer.Mail;
+import io.quarkus.mailer.Mailer;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.UUID;
@@ -16,8 +16,12 @@ public class UserService {
 
     private static final Logger LOG = Logger.getLogger(UserService.class);
 
-    @ConfigProperty(name = "resend.api-key")
-    String resendApiKey;
+    private final Mailer mailer;
+
+    @Inject
+    public UserService(Mailer mailer) {
+        this.mailer = mailer;
+    }
 
     @Transactional
     public User signup(Long id, String email, String password) {
@@ -38,7 +42,7 @@ public class UserService {
         
         user.persist();
 
-        // Send email via Resend
+        // Send email via Gmail SMTP
         sendVerificationEmail(user.email, token);
 
         return user;
@@ -46,20 +50,12 @@ public class UserService {
 
     private void sendVerificationEmail(String recipientEmail, String token) {
         try {
-            Resend resend = new Resend(resendApiKey);
-
-            SendEmailRequest sendEmailRequest = SendEmailRequest.builder()
-                    .from("onboarding@resend.dev")
-                    .to(recipientEmail)
-                    .subject("Verify your Email Address")
-                    .html("<p>Welcome to the portal!</p>" +
-                          "<p>Your email verification token is: <strong>" + token + "</strong></p>" +
-                          "<p>Please enter this token in the verification screen to access your resume dashboard.</p>")
-                    .build();
-
-            resend.emails().send(sendEmailRequest);
+            mailer.send(Mail.withHtml(recipientEmail, "Verify your Email Address",
+                    "<p>Welcome to the portal!</p>" +
+                    "<p>Your email verification token is: <strong>" + token + "</strong></p>" +
+                    "<p>Please enter this token in the verification screen to access your resume dashboard.</p>"));
         } catch (Exception e) {
-            LOG.error("Failed to send verification email via Resend: " + e.getMessage(), e);
+            LOG.error("Failed to send verification email: " + e.getMessage(), e);
         }
     }
 
