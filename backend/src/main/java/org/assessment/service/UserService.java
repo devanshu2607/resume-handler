@@ -123,4 +123,55 @@ public class UserService {
     public User findByIdAndEmail(Long id, String email) {
         return User.findByIdAndEmail(id, email);
     }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        User user = User.findByEmail(email.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("User with this email does not exist");
+        }
+
+        // Generate a 6-digit password reset OTP
+        String token = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.validationToken = token;
+        user.persist();
+
+        // Send reset code email
+        try {
+            mailer.send(Mail.withHtml(user.email, "Password Reset Code",
+                    "<p>Hello,</p>" +
+                    "<p>We received a request to reset your password.</p>" +
+                    "<p>Your password reset verification code is: <strong>" + token + "</strong></p>" +
+                    "<p>If you did not request a password reset, please ignore this email.</p>"));
+        } catch (Exception e) {
+            LOG.error("Failed to send password reset email: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    public void resetPassword(String email, String token, String newPassword) {
+        if (email == null || email.trim().isEmpty() || token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email and code are required");
+        }
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            throw new IllegalArgumentException("New password is required");
+        }
+
+        User user = User.findByEmail(email.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        if (user.validationToken == null || !user.validationToken.trim().equals(token.trim())) {
+            throw new IllegalArgumentException("Invalid or expired reset code");
+        }
+
+        // Update password and clear token
+        user.passwordHash = BCryptHasher.hash(newPassword);
+        user.validationToken = null;
+        user.persist();
+    }
 }

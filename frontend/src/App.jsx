@@ -18,6 +18,10 @@ function App() {
   const [simulatedToken, setSimulatedToken] = useState('');
   const [verifyTokenInput, setVerifyTokenInput] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [forgotStep, setForgotStep] = useState(1);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [resume, setResume] = useState(null);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -178,6 +182,78 @@ function App() {
     }
   };
 
+  const handleForgotPasswordRequest = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      await axios.post('/api/forgot-password', { email });
+      setSuccess('Reset code sent to your email.');
+      setForgotStep(2);
+      setOtpDigits(['', '', '', '', '', '']);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send reset code.');
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    const token = otpDigits.join('').trim();
+    if (!token) {
+      setError('Please provide validation token.');
+      return;
+    }
+
+    try {
+      await axios.post('/api/reset-password', { email, token, newPassword });
+      setSuccess('Password updated successfully! Please login with your new password.');
+      setView('login');
+      setForgotStep(1);
+      setEmail('');
+      setPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setOtpDigits(['', '', '', '', '', '']);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to reset password.');
+    }
+  };
+
+  const suggestPassword = () => {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+';
+    const all = lowercase + uppercase + numbers + symbols;
+
+    let generatedPassword = '';
+    // Ensure we have at least one character from each class
+    generatedPassword += lowercase[Math.floor(Math.random() * lowercase.length)];
+    generatedPassword += uppercase[Math.floor(Math.random() * uppercase.length)];
+    generatedPassword += numbers[Math.floor(Math.random() * numbers.length)];
+    generatedPassword += symbols[Math.floor(Math.random() * symbols.length)];
+
+    for (let i = 0; i < 8; i++) {
+      generatedPassword += all[Math.floor(Math.random() * all.length)];
+    }
+
+    // Shuffle the characters
+    generatedPassword = generatedPassword.split('').sort(() => 0.5 - Math.random()).join('');
+
+    setPassword(generatedPassword);
+    setConfirmPassword(generatedPassword);
+    setShowPassword(true); // Automatically show password so they can see/copy it
+    setSuccess(`Suggested password: ${generatedPassword} (Copied to fields!)`);
+  };
+
   const handleVerifyEmail = async (e) => {
     e?.preventDefault();
     setError('');
@@ -280,7 +356,7 @@ function App() {
     );
   }
 
-  if (view === 'login' || view === 'signup') {
+  if (view === 'login' || view === 'signup' || view === 'forgot-password') {
     return (
       <div className="auth-page-wrapper">
         <div className="auth-left-column">
@@ -296,7 +372,7 @@ function App() {
             {error && <div className="alert alert-error">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
-            {view === 'login' ? (
+            {view === 'login' && (
               <>
                 <h1 className="auth-title">Holla,<br />Welcome Back</h1>
                 <p className="auth-subtitle">Hey, welcome back to your special place</p>
@@ -317,7 +393,7 @@ function App() {
                   <div className="form-group">
                     <label className="auth-label" htmlFor="login-password">Password</label>
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       id="login-password"
                       className="auth-input"
                       placeholder="••••••••••••"
@@ -327,11 +403,16 @@ function App() {
                     />
                   </div>
 
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.85rem', color: '#4b5563', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+                    <input type="checkbox" id="show-pass-login" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+                    <label htmlFor="show-pass-login" style={{ cursor: 'pointer', fontWeight: 500 }}>Show password</label>
+                  </div>
+
                   <div className="auth-remember-row">
                     <label>
                       <input type="checkbox" defaultChecked /> Remember me
                     </label>
-                    <a href="#forgot" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
+                    <a href="#forgot" onClick={(e) => { e.preventDefault(); setView('forgot-password'); setForgotStep(1); setError(''); setSuccess(''); }}>Forgot Password?</a>
                   </div>
 
                   <button type="submit" className="auth-btn">
@@ -346,7 +427,9 @@ function App() {
                   </button>
                 </div>
               </>
-            ) : (
+            )}
+
+            {view === 'signup' && (
               <>
                 <h1 className="auth-title">Create<br />Your Account</h1>
                 <p className="auth-subtitle">Join us to build and access your resume dashboard</p>
@@ -365,9 +448,14 @@ function App() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="auth-label" htmlFor="signup-password">Password</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className="auth-label" htmlFor="signup-password">Password</label>
+                      <button type="button" onClick={suggestPassword} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                        🔑 Suggest Strong
+                      </button>
+                    </div>
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       id="signup-password"
                       className="auth-input"
                       placeholder="••••••••••••"
@@ -379,7 +467,7 @@ function App() {
                   <div className="form-group">
                     <label className="auth-label" htmlFor="signup-confirm-password">Confirm Password</label>
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       id="signup-confirm-password"
                       className="auth-input"
                       placeholder="••••••••••••"
@@ -387,6 +475,11 @@ function App() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                     />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.85rem', color: '#4b5563', marginTop: '-0.5rem', marginBottom: '1.5rem' }}>
+                    <input type="checkbox" id="show-pass-signup" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+                    <label htmlFor="show-pass-signup" style={{ cursor: 'pointer', fontWeight: 500 }}>Show password</label>
                   </div>
 
                   <button type="submit" className="auth-btn" style={{ marginTop: '1rem' }}>
@@ -397,6 +490,93 @@ function App() {
                 <div className="auth-footer">
                   Already have an account?{' '}
                   <button onClick={() => { setView('login'); setError(''); setSuccess(''); }}>
+                    Log In
+                  </button>
+                </div>
+              </>
+            )}
+
+            {view === 'forgot-password' && (
+              <>
+                <h1 className="auth-title">Forgot<br />Password?</h1>
+                <p className="auth-subtitle">
+                  {forgotStep === 1 
+                    ? "Enter your email to receive a password reset verification code." 
+                    : "Enter the code sent to your email and your new password."}
+                </p>
+
+                {forgotStep === 1 ? (
+                  <form onSubmit={handleForgotPasswordRequest}>
+                    <div className="form-group">
+                      <label className="auth-label" htmlFor="forgot-email">Email Address</label>
+                      <input
+                        type="email"
+                        id="forgot-email"
+                        className="auth-input"
+                        placeholder="stanley@gmail.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className="auth-btn">
+                      Send Reset Code
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleResetPasswordSubmit}>
+                    <div className="otp-inputs-container">
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <input
+                          key={index}
+                          id={`otp-input-${index}`}
+                          type="text"
+                          maxLength="1"
+                          className="otp-digit-input"
+                          value={otpDigits[index]}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          required
+                        />
+                      ))}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="auth-label" htmlFor="new-password">New Password</label>
+                      <input
+                        type="password"
+                        id="new-password"
+                        className="auth-input"
+                        placeholder="••••••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="auth-label" htmlFor="confirm-new-password">Confirm New Password</label>
+                      <input
+                        type="password"
+                        id="confirm-new-password"
+                        className="auth-input"
+                        placeholder="••••••••••••"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className="auth-btn" style={{ marginTop: '1rem' }}>
+                      Reset Password
+                    </button>
+                  </form>
+                )}
+
+                <div className="auth-footer">
+                  Remember your password?{' '}
+                  <button onClick={() => { setView('login'); setForgotStep(1); setError(''); setSuccess(''); }}>
                     Log In
                   </button>
                 </div>

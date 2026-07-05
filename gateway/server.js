@@ -175,6 +175,24 @@ app.post('/api/resend', async (req, res) => {
     }
 });
 
+app.post('/api/forgot-password', async (req, res) => {
+    try {
+        const response = await axios.post(`${QUARKUS_URL}/users/forgot-password`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to request reset code' });
+    }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const response = await axios.post(`${QUARKUS_URL}/users/reset-password`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to reset password' });
+    }
+});
+
 if (require.main === module) {
     app.listen(PORT, () => console.log(`BFF listening on port ${PORT}`));
 }

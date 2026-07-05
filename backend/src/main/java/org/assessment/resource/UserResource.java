@@ -182,4 +182,32 @@ public class UserResource {
             return Response.status(400).entity(Map.of(MESSAGE_KEY, e.getMessage())).build();
         }
     }
+
+    @POST
+    @Path("/forgot-password")
+    public Response forgotPassword(Map<String, String> payload) {
+        try {
+            if (payload == null || !payload.containsKey("email")) {
+                return Response.status(400).entity(Map.of(MESSAGE_KEY, "Email is required")).build();
+            }
+            userService.forgotPassword(payload.get("email"));
+            return Response.ok(Map.of("success", true, MESSAGE_KEY, "Reset code sent successfully")).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(400).entity(Map.of(MESSAGE_KEY, e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("/reset-password")
+    public Response resetPassword(Map<String, String> payload) {
+        try {
+            if (payload == null || !payload.containsKey("email") || !payload.containsKey("token") || !payload.containsKey("newPassword")) {
+                return Response.status(400).entity(Map.of(MESSAGE_KEY, "Email, token, and new password are required")).build();
+            }
+            userService.resetPassword(payload.get("email"), payload.get("token"), payload.get("newPassword"));
+            return Response.ok(Map.of("success", true, MESSAGE_KEY, "Password updated successfully")).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(400).entity(Map.of(MESSAGE_KEY, e.getMessage())).build();
+        }
+    }
 }
