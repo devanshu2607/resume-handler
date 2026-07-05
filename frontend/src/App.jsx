@@ -17,6 +17,7 @@ function App() {
   
   const [simulatedToken, setSimulatedToken] = useState('');
   const [verifyTokenInput, setVerifyTokenInput] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   
   const [resume, setResume] = useState(null);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -136,12 +137,54 @@ function App() {
     }
   };
 
+  const handleOtpChange = (index, value) => {
+    if (value && isNaN(value)) return; // Only allow numbers
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+
+    // Focus next input automatically
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-input-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-input-${index - 1}`);
+      if (prevInput) {
+        prevInput.focus();
+        // Clear previous digit too when hitting backspace on empty box
+        const newDigits = [...otpDigits];
+        newDigits[index - 1] = '';
+        setOtpDigits(newDigits);
+      }
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setSuccess('');
+    if (!user?.email) {
+      setError('No user email found to resend verification.');
+      return;
+    }
+    try {
+      await axios.post('/api/resend', { email: user.email });
+      setSuccess('Verification code resent successfully!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend verification code.');
+    }
+  };
+
   const handleVerifyEmail = async (e) => {
     e?.preventDefault();
     setError('');
     setSuccess('');
 
-    const token = verifyTokenInput || simulatedToken;
+    const joinedOtp = otpDigits.join('').trim();
+    const token = joinedOtp || verifyTokenInput || simulatedToken;
     if (!token) {
       setError('Please provide validation token.');
       return;
@@ -153,6 +196,7 @@ function App() {
       setUser(prev => ({ ...prev, emailValidated: true }));
       setSimulatedToken('');
       setVerifyTokenInput('');
+      setOtpDigits(['', '', '', '', '', '']);
       fetchResume();
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Invalid or expired token.');
@@ -236,6 +280,139 @@ function App() {
     );
   }
 
+  if (view === 'login' || view === 'signup') {
+    return (
+      <div className="auth-page-wrapper">
+        <div className="auth-left-column">
+          <div className="auth-form-container">
+            <div className="auth-logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#6366f1' }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>PortalAuth</span>
+            </div>
+
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
+
+            {view === 'login' ? (
+              <>
+                <h1 className="auth-title">Holla,<br />Welcome Back</h1>
+                <p className="auth-subtitle">Hey, welcome back to your special place</p>
+
+                <form onSubmit={handleLogin}>
+                  <div className="form-group">
+                    <label className="auth-label" htmlFor="login-email">Email Address</label>
+                    <input
+                      type="email"
+                      id="login-email"
+                      className="auth-input"
+                      placeholder="stanley@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="auth-label" htmlFor="login-password">Password</label>
+                    <input
+                      type="password"
+                      id="login-password"
+                      className="auth-input"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="auth-remember-row">
+                    <label>
+                      <input type="checkbox" defaultChecked /> Remember me
+                    </label>
+                    <a href="#forgot" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
+                  </div>
+
+                  <button type="submit" className="auth-btn">
+                    Sign In
+                  </button>
+                </form>
+
+                <div className="auth-footer">
+                  Don't have an account?{' '}
+                  <button onClick={() => { setView('signup'); setError(''); setSuccess(''); }}>
+                    Sign Up
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="auth-title">Create<br />Your Account</h1>
+                <p className="auth-subtitle">Join us to build and access your resume dashboard</p>
+
+                <form onSubmit={handleSignup}>
+                  <div className="form-group">
+                    <label className="auth-label" htmlFor="signup-email">Email Address</label>
+                    <input
+                      type="email"
+                      id="signup-email"
+                      className="auth-input"
+                      placeholder="stanley@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="auth-label" htmlFor="signup-password">Password</label>
+                    <input
+                      type="password"
+                      id="signup-password"
+                      className="auth-input"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="auth-label" htmlFor="signup-confirm-password">Confirm Password</label>
+                    <input
+                      type="password"
+                      id="signup-confirm-password"
+                      className="auth-input"
+                      placeholder="••••••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" className="auth-btn" style={{ marginTop: '1rem' }}>
+                    Sign Up
+                  </button>
+                </form>
+
+                <div className="auth-footer">
+                  Already have an account?{' '}
+                  <button onClick={() => { setView('login'); setError(''); setSuccess(''); }}>
+                    Log In
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="auth-right-column">
+          <div className="auth-illustration-container">
+            <img src="/auth_illustration.png" alt="Secure Illustration" className="auth-illustration-img" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       <header className="navbar">
@@ -263,154 +440,49 @@ function App() {
         {error && <div className="alert alert-error">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
-        {view === 'login' && (
-          <div className="glass-card">
-            <h2>Welcome Back</h2>
-            <p>Sign in to access your professional resume dashboard.</p>
-            
-            <form onSubmit={handleLogin}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="login-email">Email Address</label>
-                <input 
-                  type="email" 
-                  id="login-email"
-                  className="form-input" 
-                  placeholder="name@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="login-password">Password</label>
-                <input 
-                  type="password" 
-                  id="login-password"
-                  className="form-input" 
-                  placeholder="••••••••" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                Log In
-              </button>
-            </form>
-            
-            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
-              Don't have an account?{' '}
-              <button onClick={() => { setView('signup'); setError(''); setSuccess(''); }} className="link-btn">
-                Sign Up
-              </button>
-            </div>
-
-            {simulatedToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
-              <div className="simulated-inbox">
-                <h4>📬 Simulated Email Inbox</h4>
-                <p style={{ fontSize: '0.85rem', margin: '0.5rem 0' }}>
-                  A verification token was sent to your registered email:
-                </p>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                  <code style={{ flexGrow: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{simulatedToken}</code>
-                  <button onClick={handleVerifyEmail} className="btn btn-secondary" style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-                    Quick Verify
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {view === 'signup' && (
-          <div className="glass-card">
-            <h2>Create Account</h2>
-            <p>Get started by creating your secure portal account.</p>
-            
-            <form onSubmit={handleSignup}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="signup-email">Email Address</label>
-                <input 
-                  type="email" 
-                  id="signup-email"
-                  className="form-input" 
-                  placeholder="name@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="signup-password">Password</label>
-                <input 
-                  type="password" 
-                  id="signup-password"
-                  className="form-input" 
-                  placeholder="••••••••" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="signup-confirm-password">Confirm Password</label>
-                <input 
-                  type="password" 
-                  id="signup-confirm-password"
-                  className="form-input" 
-                  placeholder="••••••••" 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                Sign Up
-              </button>
-            </form>
-            
-            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
-              Already have an account?{' '}
-              <button onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="link-btn">
-                Log In
-              </button>
-            </div>
-          </div>
-        )}
-
         {view === 'dashboard' && user && (
           <div className="dashboard-container">
             {!user.emailValidated ? (
-              <div className="verify-banner">
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚠️</div>
-                <h3 style={{ color: 'var(--warning-color)' }}>Verification Required</h3>
-                <p style={{ fontSize: '1.1rem', margin: '0.75rem 0 1.5rem 0' }}>
-                  You need to validate your email to access the portal
-                </p>
+              <div className="verify-card animate-fade-in">
+                <h2>Verification Code</h2>
+                <p>Enter the code sent to your email address: <strong>{user.email}</strong></p>
                 
-                <form onSubmit={handleVerifyEmail} style={{ display: 'flex', gap: '0.5rem', maxWidth: '400px', margin: '0 auto' }}>
-                  <input 
-                    type="text" 
-                    id="verify-token"
-                    aria-label="validation token"
-                    className="form-input" 
-                    placeholder="Enter validation token..." 
-                    value={verifyTokenInput}
-                    onChange={(e) => setVerifyTokenInput(e.target.value)}
-                    required
-                  />
-                  <button type="submit" className="btn btn-primary" style={{ width: 'auto', whiteSpace: 'nowrap' }}>
-                    Validate Email
+                <form onSubmit={handleVerifyEmail}>
+                  <div className="otp-inputs-container">
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <input
+                        key={index}
+                        id={`otp-input-${index}`}
+                        type="text"
+                        maxLength="1"
+                        className="otp-digit-input"
+                        value={otpDigits[index]}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        required
+                      />
+                    ))}
+                  </div>
+                  
+                  <button type="submit" className="auth-btn">
+                    Verify
                   </button>
                 </form>
 
+                <div className="verify-footer-text">
+                  Didn't receive a code?{' '}
+                  <button onClick={handleResendCode} type="button">
+                    Resend Code
+                  </button>
+                </div>
+
                 {simulatedToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
-                  <div className="simulated-inbox" style={{ maxWidth: '400px', margin: '1.5rem auto 0 auto' }}>
-                    <h4>📬 Simulated Validation Token</h4>
-                    <p style={{ fontSize: '0.8rem', margin: '0.25rem 0' }}>
+                  <div className="simulated-inbox" style={{ maxWidth: '400px', margin: '2rem auto 0 auto' }}>
+                    <h4 style={{ color: '#111827' }}>📬 Simulated Validation Token</h4>
+                    <p style={{ fontSize: '0.8rem', margin: '0.25rem 0', color: '#6b7280' }}>
                       Token: <code>{simulatedToken}</code>
                     </p>
-                    <button onClick={handleVerifyEmail} className="btn btn-secondary" style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.35rem 1rem' }}>
+                    <button onClick={handleVerifyEmail} className="btn btn-secondary" style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.35rem 1rem', background: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}>
                       Auto Validate Now
                     </button>
                   </div>

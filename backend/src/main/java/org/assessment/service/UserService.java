@@ -60,6 +60,27 @@ public class UserService {
     }
 
     @Transactional
+    public void resendVerification(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        User user = User.findByEmail(email.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+        if (user.emailValidated) {
+            throw new IllegalArgumentException("Email already verified");
+        }
+
+        // Generate a new 6-digit OTP token
+        String token = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.validationToken = token;
+        user.persist();
+
+        sendVerificationEmail(user.email, token);
+    }
+
+    @Transactional
     public boolean verifyEmail(String token) {
         if (token == null || token.trim().isEmpty()) {
             return false;

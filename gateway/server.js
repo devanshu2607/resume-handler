@@ -167,6 +167,15 @@ app.delete('/api/resumes/my', auth, verified, async (req, res) => {
     }
 });
 
+app.post('/api/resend', async (req, res) => {
+    try {
+        const response = await axios.post(`${QUARKUS_URL}/users/resend`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        res.status(err.response?.status || 500).json(err.response?.data || { message: 'Failed to resend' });
+    }
+});
+
 if (require.main === module) {
     app.listen(PORT, () => console.log(`BFF listening on port ${PORT}`));
 }

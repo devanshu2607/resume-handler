@@ -168,4 +168,18 @@ public class UserResource {
         resume.delete();
         return Response.ok(Map.of("success", true, MESSAGE_KEY, "Resume deleted")).build();
     }
+
+    @POST
+    @Path("/resend")
+    public Response resend(Map<String, String> payload) {
+        try {
+            if (payload == null || !payload.containsKey("email")) {
+                return Response.status(400).entity(Map.of(MESSAGE_KEY, "Email is required")).build();
+            }
+            userService.resendVerification(payload.get("email"));
+            return Response.ok(Map.of("success", true, MESSAGE_KEY, "Verification code resent")).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(400).entity(Map.of(MESSAGE_KEY, e.getMessage())).build();
+        }
+    }
 }
